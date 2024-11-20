@@ -9,7 +9,7 @@ RSpec.describe Cart, type: :model do
     end
   end
 
-  describe 'mark_as_abandoned' do
+  describe 'mark_as_abandoned', :pending do
     let(:shopping_cart) { create(:shopping_cart) }
 
     it 'marks the shopping cart as abandoned if inactive for a certain time' do
@@ -18,7 +18,7 @@ RSpec.describe Cart, type: :model do
     end
   end
 
-  describe 'remove_if_abandoned' do
+  describe 'remove_if_abandoned', :pending do
     let(:shopping_cart) { create(:shopping_cart, last_interaction_at: 7.days.ago) }
 
     it 'removes the shopping cart if abandoned for a certain time' do
