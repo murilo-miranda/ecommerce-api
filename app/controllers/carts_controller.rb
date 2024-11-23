@@ -6,7 +6,7 @@ class CartsController < ApplicationController
 
     cart_item = CartItem.find_or_initialize_by(cart: cart, product: product)
     
-    Cart.transaction do
+    begin
       update_cart(cart, cart_item)
       render json: json_response(cart), status: :ok
     rescue ActiveRecord::RecordInvalid
@@ -21,8 +21,10 @@ class CartsController < ApplicationController
   end
 
   def update_cart(cart, cart_item)
-    cart_item.update!(quantity: cart_item.quantity += cart_params[:quantity].to_i)
-    cart.update!(total_price: cart.cart_items.sum {|cart_item| cart_item.quantity * cart_item.product.price })
+    Cart.transaction do
+      cart_item.update!(quantity: cart_item.quantity += cart_params[:quantity].to_i)
+      cart.update!(total_price: cart.cart_items.sum {|cart_item| cart_item.quantity * cart_item.product.price })
+    end
   end
 
   def json_response(cart)
