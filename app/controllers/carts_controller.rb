@@ -24,7 +24,10 @@ class CartsController < ApplicationController
   end
 
   def destroy
-    cart = Cart.last
+    cart = Cart.last!
+  rescue ActiveRecord::RecordNotFound
+    render json: { error: 'Cart not found. Please create a new cart' }, status: :not_found
+  else
     product = Product.find(product_id)
     cart_item = CartItem.find_by(cart: cart, product: product_id)
 

@@ -163,6 +163,14 @@ RSpec.describe "/carts", type: :request do
   end
 
   describe "DELETE /cart/:product_id" do
+    context 'when cart does not exist' do
+      it 'returns status code 404' do
+        delete '/cart/1'
+        expect(response).to have_http_status(:not_found)
+        expect(response.body).to eq({ error: 'Cart not found. Please create a new cart' }.to_json)
+      end
+    end
+
     context 'when there is more than one product in the cart' do
       let(:product) { Product.create(name: "Test Product", price: 10.0) }
       let(:product2) { Product.create(name: "Test Product 2", price: 3.60) }
