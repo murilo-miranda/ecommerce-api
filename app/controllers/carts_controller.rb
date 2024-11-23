@@ -28,7 +28,7 @@ class CartsController < ApplicationController
   def json_response(cart)
     {
       id: cart.id,
-      products: cart.cart_items.map do |cart_item|
+      products: cart.cart_items.includes(:product).map do |cart_item|
         {
           id: cart_item.product.id,
           name: cart_item.product.name,
