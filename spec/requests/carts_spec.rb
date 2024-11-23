@@ -1,6 +1,66 @@
 require 'rails_helper'
 
 RSpec.describe "/carts", type: :request do
+  describe "GET /cart" do
+    subject do
+      get '/cart'
+    end
+    
+    context 'when cart exists' do
+      let(:cart) { Cart.create(total_price: 0) }
+      let(:product) { Product.create(name: "Test Product", price: 10.0) }
+      let(:product2) { Product.create(name: "Test Product 2", price: 3.60) }
+      let(:product3) { Product.create(name: "Test Product 3", price: 24.50) }
+      let(:expected_response) do
+        {
+          id: cart.id,
+          products: [
+            {
+              id: product.id,
+              name: product.name,
+              quantity: 1,
+              unit_price: product.price,
+              total_price: product.price
+            },
+            {
+              id: product2.id,
+              name: product2.name,
+              quantity: 1,
+              unit_price: product2.price,
+              total_price: product2.price
+            },
+            {
+              id: product3.id,
+              name: product3.name,
+              quantity: 1,
+              unit_price: product3.price,
+              total_price: product3.price
+            }
+          ],
+          total_price: product.price + product2.price + product3.price
+        }
+      end
+      
+      it 'returns status code 200 and the cart' do
+        CartItem.create(cart: cart, product: product, quantity: 1)
+        CartItem.create(cart: cart, product: product2, quantity: 1)
+        CartItem.create(cart: cart, product: product3, quantity: 1)
+        
+        subject
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to eq(expected_response.to_json)
+      end
+    end
+
+    context 'when cart does not exist' do
+      it 'returns status code 404' do
+        subject
+        expect(response).to have_http_status(:not_found)
+        expect(response.body).to eq({ error: 'Cart not found. Please create a new cart' }.to_json)
+      end
+    end
+  end
+  
   describe "POST /add_items" do
     let(:cart) { Cart.create(total_price: 0) }
     let(:product) { Product.create(name: "Test Product", price: 10.0) }
