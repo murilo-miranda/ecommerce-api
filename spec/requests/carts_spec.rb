@@ -85,8 +85,8 @@ RSpec.describe "/carts", type: :request do
       end
       
       subject do
-        post '/cart/add_items', params: { product_id: product.id, quantity: 1 }, as: :json
-        post '/cart/add_items', params: { product_id: product.id, quantity: 1 }, as: :json
+        post '/cart/add_item', params: { product_id: product.id, quantity: 1 }, as: :json
+        post '/cart/add_item', params: { product_id: product.id, quantity: 1 }, as: :json
       end
 
       it 'updates the quantity of the existing item in the cart' do
@@ -125,7 +125,7 @@ RSpec.describe "/carts", type: :request do
       end
       
       subject do
-        post '/cart/add_items', params: { product_id: new_product.id, quantity: 2 }, as: :json
+        post '/cart/add_item', params: { product_id: new_product.id, quantity: 2 }, as: :json
       end
 
       it 'add a new item in the cart' do
@@ -147,7 +147,7 @@ RSpec.describe "/carts", type: :request do
       end
       
       subject do
-        post '/cart/add_items', params: { product_id: new_product.id, quantity: -1 }, as: :json
+        post '/cart/add_item', params: { product_id: new_product.id, quantity: -1 }, as: :json
       end
 
       it 'does not add a new item in the cart' do
@@ -158,6 +158,96 @@ RSpec.describe "/carts", type: :request do
         subject
         expect(response).to have_http_status(:unprocessable_entity)
         expect(response.body).to eq(expected_response)
+      end
+    end
+  end
+
+  describe "DELETE /cart/:product_id" do
+    context 'when there is more than one product in the cart' do
+      let(:product) { Product.create(name: "Test Product", price: 10.0) }
+      let(:product2) { Product.create(name: "Test Product 2", price: 3.60) }
+      let(:cart) { Cart.create(total_price: 0) }
+      let(:expected_response) do
+        {
+          id: cart.id,
+          products: [
+            {
+              id: product2.id,
+              name: product2.name,
+              quantity: 1,
+              unit_price: product2.price,
+              total_price: product2.price
+            }
+          ],
+          total_price: product2.price
+        }.to_json
+      end
+
+      subject do
+        delete "/cart/#{product.id}"
+      end
+
+      it 'removes the product from the cart' do
+        CartItem.create(cart: cart, product: product, quantity: 1)
+        CartItem.create(cart: cart, product: product2, quantity: 1)
+
+        expect { subject }.to change { CartItem.count }.by(-1)
+      end
+
+      it 'returns the updated cart' do
+        CartItem.create(cart: cart, product: product, quantity: 1)
+        CartItem.create(cart: cart, product: product2, quantity: 1)
+        
+        subject
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to eq(expected_response)
+      end
+    end
+
+    context 'when product does not exist' do
+      let(:product) { Product.create(name: "Test Product", price: 10.0) }
+      let(:product2) { Product.create(name: "Test Product 2", price: 3.60) }
+      let(:cart) { Cart.create(total_price: 0) }
+
+      subject do
+        delete "/cart/#{product.id}"
+      end
+
+      it 'does not remove the product from the cart' do
+        CartItem.create(cart: cart, product: product2, quantity: 1)
+        
+        expect { subject }.not_to change { CartItem.count }
+      end
+
+      it 'returns status code 404' do
+        CartItem.create(cart: cart, product: product2, quantity: 1)
+        
+        subject
+        expect(response).to have_http_status(:not_found)
+        expect(response.body).to eq({ error: 'Product not found in cart' }.to_json)
+      end
+    end
+
+    context 'when there is only one product in the cart' do
+      let(:product) { Product.create(name: "Test Product", price: 10.0) }
+      let(:cart) { Cart.create(total_price: 0) }
+
+      subject do
+        delete "/cart/#{product.id}"
+      end
+
+      it 'removes the product from the cart' do
+        CartItem.create(cart: cart, product: product, quantity: 1)
+        
+        expect { subject }.to change { CartItem.count }.by(-1)
+      end
+
+      it 'returns status code 200 and a message' do
+        CartItem.create(cart: cart, product: product, quantity: 1)
+        
+        subject
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to eq({ message: 'Cart is empty' }.to_json)
       end
     end
   end
