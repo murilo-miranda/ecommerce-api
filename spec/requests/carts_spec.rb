@@ -78,5 +78,27 @@ RSpec.describe "/carts", type: :request do
         expect(response.body).to eq(expected_response)
       end
     end
+
+    context 'when fail due to invalid quantity param' do
+      let(:expected_response) do
+        {
+          quantity: ["must be greater than or equal to 1"]
+        }.to_json
+      end
+      
+      subject do
+        post '/cart/add_items', params: { product_id: new_product.id, quantity: -1 }, as: :json
+      end
+
+      it 'does not add a new item in the cart' do
+        expect { subject }.not_to change { CartItem.count }
+      end
+
+      it 'returns cart item errors' do
+        subject
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.body).to eq(expected_response)
+      end
+    end
   end
 end

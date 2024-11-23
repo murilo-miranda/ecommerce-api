@@ -1,18 +1,15 @@
 class CartsController < ApplicationController
-  ## TODO Escreva a lógica dos carrinhos aqui
   def add_items
     cart = Cart.last
 
     product = Product.find(cart_params[:product_id])
 
     cart_item = CartItem.find_or_initialize_by(cart: cart, product: product)
-
-    cart_item.quantity += cart_params[:quantity].to_i
     
-    if cart_item.save
-      cart.update(total_price: cart.cart_items.sum {|cart_item| cart_item.quantity * cart_item.product.price })
+    Cart.transaction do
+      update_cart(cart, cart_item)
       render json: json_response(cart), status: :ok
-    else
+    rescue ActiveRecord::RecordInvalid
       render json: cart_item.errors, status: :unprocessable_entity
     end
   end
@@ -21,6 +18,11 @@ class CartsController < ApplicationController
 
   def cart_params
     params.permit(:product_id, :quantity)
+  end
+
+  def update_cart(cart, cart_item)
+    cart_item.update!(quantity: cart_item.quantity += cart_params[:quantity].to_i)
+    cart.update!(total_price: cart.cart_items.sum {|cart_item| cart_item.quantity * cart_item.product.price })
   end
 
   def json_response(cart)
