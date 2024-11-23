@@ -8,7 +8,7 @@ class CartsController < ApplicationController
     end
   end
   
-  def add_items
+  def add_item
     cart = Cart.last
 
     product = Product.find(cart_params[:product_id])
@@ -23,8 +23,33 @@ class CartsController < ApplicationController
     end
   end
 
+  def destroy
+    cart = Cart.last!
+  rescue ActiveRecord::RecordNotFound
+    render json: { error: 'Cart not found. Please create a new cart' }, status: :not_found
+  else
+    product = Product.find(product_id)
+    cart_item = CartItem.find_by(cart: cart, product: product_id)
+
+    if cart_item
+      cart_item.destroy
+
+      if cart.cart_items.exists?
+        render json: json_response(cart.reload), status: :ok
+      else
+        render json: { message: 'Cart is empty' }, status: :ok
+      end
+    else
+      render json: { error: 'Product not found in cart' }, status: :not_found
+    end
+  end
+
   private
 
+  def product_id
+    params.permit(:product_id)[:product_id]
+  end
+  
   def cart_params
     params.permit(:product_id, :quantity)
   end
