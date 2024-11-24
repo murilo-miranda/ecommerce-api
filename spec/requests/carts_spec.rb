@@ -61,6 +61,12 @@ RSpec.describe "/carts", type: :request do
       it 'does not create a new cart' do
         expect { subject }.not_to change { Cart.count }
       end
+
+      it 'returns status code 201 with cart data' do
+        subject
+        expect(response).to have_http_status(:created)
+        expect(response.body).to eq(expected_response)
+      end
     end
     
     context 'when cart exists but is abandoned more than 3 hours' do
@@ -68,7 +74,7 @@ RSpec.describe "/carts", type: :request do
       let!(:cart) { Cart.create(total_price: 0) }
       let(:expected_response) do
         {
-          id: cart.id,
+          id: Cart.last.id,
           products: [
             {
               id: product.id,
@@ -90,6 +96,12 @@ RSpec.describe "/carts", type: :request do
       it 'creates a new cart' do
         expect { subject }.to change { Cart.count }.by(1)
         expect(Cart.last.status).to eq('active')
+      end
+
+      it 'returns status code 201 with cart data' do
+        subject
+        expect(response).to have_http_status(:created)
+        expect(response.body).to eq(expected_response)
       end
     end
   end
