@@ -1,6 +1,99 @@
 require 'rails_helper'
 
 RSpec.describe "/carts", type: :request do
+  describe "POST /cart" do
+    subject do
+      post '/cart', params: { product_id: product.id, quantity: 1 }, as: :json
+    end
+
+    context 'when cart does not exist' do
+      let(:product) { Product.create(name: "Test Product", price: 10.0) }
+      let(:expected_response) do
+        {
+          id: Cart.last.id,
+          products: [
+            {
+              id: product.id,
+              name: product.name,
+              quantity: 1,
+              unit_price: product.price,
+              total_price: product.price
+            }
+          ],
+          total_price: product.price
+        }.to_json
+      end
+
+      it 'creates a new cart' do
+        expect { subject }.to change { Cart.count }.by(1)
+      end
+
+      it 'returns status code 201 with cart data' do
+        subject
+        expect(response).to have_http_status(:created)
+        expect(response.body).to eq(expected_response)
+      end
+    end
+
+    context 'when cart exists but is abandoned less than 2 hours' do
+      let(:product) { Product.create(name: "Test Product", price: 10.0) }
+      let!(:cart) { Cart.create(total_price: 0) }
+      let(:expected_response) do
+        {
+          id: cart.id,
+          products: [
+            {
+              id: product.id,
+              name: product.name,
+              quantity: 1,
+              unit_price: product.price,
+              total_price: product.price
+            }
+          ],
+          total_price: product.price
+        }.to_json
+      end
+
+      before do
+        cart.update(updated_at: 2.hours.ago)
+      end
+
+      it 'does not create a new cart' do
+        expect { subject }.not_to change { Cart.count }
+      end
+    end
+    
+    context 'when cart exists but is abandoned more than 3 hours' do
+      let(:product) { Product.create(name: "Test Product", price: 10.0) }
+      let!(:cart) { Cart.create(total_price: 0) }
+      let(:expected_response) do
+        {
+          id: cart.id,
+          products: [
+            {
+              id: product.id,
+              name: product.name,
+              quantity: 1,
+              unit_price: product.price,
+              total_price: product.price
+            }
+          ],
+          total_price: product.price
+        }.to_json
+      end
+
+      before do
+        cart.update(updated_at: 4.hours.ago)
+        cart.mark_as_abandoned
+      end
+
+      it 'creates a new cart' do
+        expect { subject }.to change { Cart.count }.by(1)
+        expect(Cart.last.status).to eq('active')
+      end
+    end
+  end
+  
   describe "GET /cart" do
     subject do
       get '/cart'
