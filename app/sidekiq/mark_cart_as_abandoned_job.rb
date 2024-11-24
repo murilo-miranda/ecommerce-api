@@ -1,7 +1,8 @@
 class MarkCartAsAbandonedJob
   include Sidekiq::Job
 
-  def perform(*args)
-    # TODO Impletemente um Job para gerenciar, marcar como abandonado. E remover carrinhos sem interação. 
+  def perform()
+    active_carts = Cart.where('updated_at < ?', 3.hours.ago)
+    active_carts.update_all(status: :abandoned)
   end
 end
