@@ -7,3 +7,13 @@
   - mailers
   - active_storage_analysis
   - active_storage_purge
+tasks: &tasks
+  MarkCartAsAbandonedJob:
+    cron: "0 */4 * * *"
+    queue: default
+  DeleteCartJob:
+    cron: "0 0 * * *"
+    queue: default
+:scheduler:
+  :schedule:
+    <<: *tasks
