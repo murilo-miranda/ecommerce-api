@@ -63,6 +63,7 @@ class CartsController < ApplicationController
 
   def set_cart
     @cart = Cart.last!
+    render json: { error: 'Cart is no longer available, please create a new cart' }, status: :not_found if @cart.abandoned?
   rescue ActiveRecord::RecordNotFound
     render json: { error: 'Cart not found. Please create a new cart' }, status: :not_found
   end

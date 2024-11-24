@@ -157,6 +157,31 @@ RSpec.describe "/carts", type: :request do
       end
     end
 
+    context 'when cart exists but is abandoned' do
+      let(:cart) { Cart.create(total_price: 0) }
+      let(:product) { Product.create(name: "Test Product", price: 10.0) }
+      let(:product2) { Product.create(name: "Test Product 2", price: 3.60) }
+      let(:expected_response) do
+        {
+          error: 'Cart is no longer available, please create a new cart'
+        }.to_json
+      end
+
+      before do
+        cart.update(updated_at: 4.hours.ago)
+        cart.mark_as_abandoned
+      end
+
+      it 'returns status code 404' do
+        CartItem.create(cart: cart, product: product, quantity: 1)
+        CartItem.create(cart: cart, product: product2, quantity: 1)
+        
+        subject
+        expect(response).to have_http_status(:not_found)
+        expect(response.body).to eq(expected_response)
+      end
+    end
+
     context 'when cart does not exist' do
       it 'returns status code 404' do
         subject
@@ -273,6 +298,31 @@ RSpec.describe "/carts", type: :request do
         delete '/cart/1'
         expect(response).to have_http_status(:not_found)
         expect(response.body).to eq({ error: 'Cart not found. Please create a new cart' }.to_json)
+      end
+    end
+
+    context 'when cart exists but is abandoned' do
+      let(:cart) { Cart.create(total_price: 0) }
+      let(:product) { Product.create(name: "Test Product", price: 10.0) }
+      let(:product2) { Product.create(name: "Test Product 2", price: 3.60) }
+      let(:expected_response) do
+        {
+          error: 'Cart is no longer available, please create a new cart'
+        }.to_json
+      end
+
+      before do
+        cart.update(updated_at: 4.hours.ago)
+        cart.mark_as_abandoned
+      end
+
+      it 'returns status code 404' do
+        CartItem.create(cart: cart, product: product, quantity: 1)
+        CartItem.create(cart: cart, product: product2, quantity: 1)
+        
+        delete '/cart/1'
+        expect(response).to have_http_status(:not_found)
+        expect(response.body).to eq(expected_response)
       end
     end
 
