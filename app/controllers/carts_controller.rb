@@ -1,12 +1,7 @@
 class CartsController < ApplicationController
   def create
-    cart = Cart.last
-
-    if cart
-      cart = Cart.create(total_price: 0) if cart.abandoned?
-    else 
-      cart = Cart.create(total_price: 0)
-    end
+    cart = Cart.last || Cart.create(total_price: 0)
+    cart = Cart.create(total_price: 0) if cart.abandoned?
 
     CartItem.create(cart_id: cart.id, product_id: cart_params[:product_id], quantity: cart_params[:quantity])
 
