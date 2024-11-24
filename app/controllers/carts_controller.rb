@@ -1,11 +1,17 @@
 class CartsController < ApplicationController
+  before_action :set_cart, only: %i[ show destroy ]
+
+  def create
+    cart = Cart.last || Cart.create(total_price: 0)
+    cart = Cart.create(total_price: 0) if cart.abandoned?
+
+    CartItem.create(cart_id: cart.id, product_id: cart_params[:product_id], quantity: cart_params[:quantity])
+
+    render json: json_response(cart.reload), status: :created
+  end
+  
   def show
-    begin
-      cart = Cart.last!
-      render json: json_response(cart), status: :ok
-    rescue ActiveRecord::RecordNotFound
-      render json: { error: 'Cart not found. Please create a new cart' }, status: :not_found
-    end
+    render json: json_response(@cart), status: :ok
   end
   
   def add_item
@@ -24,18 +30,13 @@ class CartsController < ApplicationController
   end
 
   def destroy
-    cart = Cart.last!
-  rescue ActiveRecord::RecordNotFound
-    render json: { error: 'Cart not found. Please create a new cart' }, status: :not_found
-  else
-    product = Product.find(product_id)
-    cart_item = CartItem.find_by(cart: cart, product: product_id)
+    cart_item = CartItem.find_by(cart: @cart, product: product_id)
 
     if cart_item
       cart_item.destroy
 
-      if cart.cart_items.exists?
-        render json: json_response(cart.reload), status: :ok
+      if @cart.cart_items.exists?
+        render json: json_response(@cart.reload), status: :ok
       else
         render json: { message: 'Cart is empty' }, status: :ok
       end
@@ -58,6 +59,12 @@ class CartsController < ApplicationController
     CartItem.transaction do
       cart_item.update!(quantity: cart_item.quantity += cart_params[:quantity].to_i)
     end
+  end
+
+  def set_cart
+    @cart = Cart.last!
+  rescue ActiveRecord::RecordNotFound
+    render json: { error: 'Cart not found. Please create a new cart' }, status: :not_found
   end
 
   def json_response(cart)
